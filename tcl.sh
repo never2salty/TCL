@@ -12,6 +12,8 @@
 #   ./tcl.sh dns [aus]           werbefilterndes Private DNS an/aus
 #   ./tcl.sh home [aus]          schlichter Home-Screen (TCL Home) an/aus
 #   ./tcl.sh hintergrund <bild>  eigenes Hintergrundbild (jpg/png) auf den TV
+#   ./tcl.sh hintergruende [n|ordner|aus]  wechselnde Hintergründe: n Google-Backdrops
+#                                (Standard 30) oder alle Bilder aus einem Ordner
 #   ./tcl.sh youtube             SmartTube installieren (YouTube ohne Werbung)
 #   ./tcl.sh backup              Backup von Einstellungen, Home-Screen und App-Liste
 #   ./tcl.sh wiederherstellen    Patch + Backup neu aufspielen (z. B. nach Werksreset)
@@ -366,6 +368,69 @@ cmd_hintergrund() {
   note "erscheint, sobald du HOME drückst. Ohne eigenes Bild gibt es die eingebauten Berge."
 }
 
+# Die Chromecast-/Google-TV-Backdrops: eine öffentliche Liste von ~700 Fotos auf Googles Servern.
+BACKDROPS=https://raw.githubusercontent.com/dconnolly/chromecast-backgrounds/master/backgrounds.json
+
+# Setzt einen Schlüssel in der home.conf im Media-Ordner; TCL Home übernimmt sie beim nächsten HOME.
+set_home_conf() {
+  local tmp=.cache/home.conf
+  mkdir -p .cache
+  dev cat "$HOME_MEDIA/home.conf" >"$tmp"
+  grep -v "^$1=" "$tmp" >"$tmp.new" || true
+  printf '%s=%s\n' "$1" "$2" >>"$tmp.new"
+  adb_ push "$tmp.new" "$HOME_MEDIA/home.conf" >/dev/null
+}
+
+cmd_hintergruende() {
+  pick_device
+  local arg=${1:-30} dir n=0 url name f
+  if [[ $arg == aus ]]; then
+    step "Wechselnde Hintergründe entfernen"
+    dev rm -rf "$HOME_MEDIA/wallpapers"
+    set_home_conf rotate off
+    note "entfernt. Es gilt wieder ein einzelnes Bild bzw. die eingebauten Berge."
+    return
+  fi
+  step "Wechselnde Hintergründe"
+  if [[ -d $arg ]]; then
+    dir=$arg
+  elif [[ $arg =~ ^[0-9]+$ ]]; then
+    dir=hintergruende
+    mkdir -p "$dir" .cache
+    note "lade die Liste der Google-Backdrops"
+    curl -fsSL --retry 3 -o .cache/backdrops.json "$BACKDROPS" || die "Liste nicht erreichbar: $BACKDROPS"
+    note "lade $arg zufällige Bilder nach $dir/ (privat nutzen, Rechte bei den Fotografen)"
+    while read -r url; do
+      name=$(basename "${url%%\?*}")
+      name=$(printf '%s' "${name//%2B/_}" | tr -c 'A-Za-z0-9._-' '_')
+      [[ $name == *.jpg || $name == *.jpeg ]] || name=$name.jpg
+      if [[ -s $dir/$name ]]; then n=$((n + 1)); continue; fi
+      if curl -fsSL --connect-timeout 15 -o "$dir/$name" "$url" 2>/dev/null && [[ -s $dir/$name ]]; then
+        n=$((n + 1)); printf '.'
+      else
+        rm -f "$dir/$name"
+      fi
+    done < <(grep -o '"url": *"[^"]*"' .cache/backdrops.json | sed 's/.*"\(http[^"]*\)"/\1/' \
+               | awk 'BEGIN{srand()} {print rand() "\t" $0}' | sort | cut -f2- | head -n "$arg")
+    printf '\n'
+    [[ $n -gt 0 ]] || die "kein Bild geladen. Internet ok?"
+    note "$n Bilder geladen"
+  else
+    die "usage: ./tcl.sh hintergruende [anzahl | ordner | aus]"
+  fi
+  dev mkdir -p "$HOME_MEDIA/wallpapers"
+  n=0
+  for f in "$dir"/*; do
+    case $(printf '%s' "$f" | tr 'A-Z' 'a-z') in
+      *.jpg|*.jpeg|*.png|*.webp) adb_ push "$f" "$HOME_MEDIA/wallpapers/" >/dev/null && n=$((n + 1)) ;;
+    esac
+  done
+  [[ $n -gt 0 ]] || die "keine Bilder (jpg/png/webp) in $dir/"
+  set_home_conf rotate "${ROTATE:-hourly}"
+  note "$n Bilder auf dem TV, Wechsel: ${ROTATE:-hourly}. Ändern: Optionen > Wallpaper rotation,"
+  note "sofort weiter: Optionen > Next wallpaper. Wirkt beim nächsten Druck auf HOME."
+}
+
 # Ein Backup ist ein Ordner unter backup/: TV-Einstellungen, deaktivierte Pakete, App-Liste,
 # Home-Screen-Einstellungen und Hintergrundbilder. `wiederherstellen` spielt es zurück.
 cmd_backup() {
@@ -490,7 +555,7 @@ args=()
 for a in "$@"; do
   case $a in
     -y|--yes) YES=1 ;;
-    -h|--help) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) args+=("$a") ;;
   esac
 done
@@ -499,7 +564,7 @@ set -- "${args[@]+"${args[@]}"}"
 cmd=${1:-}
 shift || true
 case $cmd in
-  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|youtube|backup|wiederherstellen|neu|rueckgaengig)
+  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|hintergruende|youtube|backup|wiederherstellen|neu|rueckgaengig)
     "cmd_$cmd" "$@" ;;
-  *) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

@@ -82,6 +82,7 @@ Git Bash, auf dem Mac oder unter Linux `./tcl.sh backup`.
 | YouTube | `./tcl.sh youtube` | [SmartTube](https://github.com/yuliskov/SmartTube): YouTube ohne Werbung und ohne Shorts |
 | Home-Screen | `./tcl.sh home` | TCL Home statt Google TV (siehe unten) |
 | Hintergrund | `./tcl.sh hintergrund foto.jpg` | eigenes Bild statt der eingebauten Berge |
+| Hintergründe | `./tcl.sh hintergruende` | 30 zufällige Google-/Chromecast-Backdrops, wechseln stündlich |
 
 [listen/niemals.txt](listen/niemals.txt) wird nie angefasst: HDMI-Eingänge,
 Fernbedienung, Einstellungen, Chromecast, AirPlay, Sprachsuche, Play Store,
@@ -103,6 +104,27 @@ TCL-Systemdienste. Eine App, die du doch willst, kommentierst du in der Liste mi
 
 Die App wird bei jeder Änderung in `home/` von GitHub Actions gebaut und als
 `home/tcl-home.apk` ins Repo gelegt. `git pull` holt die neueste Version.
+
+## Wechselnde Hintergründe
+
+```bat
+tcl hintergruende
+```
+
+Lädt 30 zufällige Fotos aus den Chromecast-/Google-TV-Backdrops (eine öffentliche
+[Liste mit ~700 Bildern](https://github.com/dconnolly/chromecast-backgrounds)) nach
+`hintergruende/` und schiebt sie auf den TV. Sie wechseln stündlich. Mehr oder
+weniger Bilder: `tcl hintergruende 60`.
+
+- **Eigene Sammlung:** Bilder in einen Ordner legen, dann `tcl hintergruende C:\Pfad\zum\Ordner`.
+  Bilder, die dir nicht gefallen, löschst du aus `hintergruende\` und rufst
+  `tcl hintergruende hintergruende` auf.
+- **Wechsel ändern:** am TV *Optionen › Wallpaper rotation* (jede Rückkehr, stündlich,
+  täglich, nach Tageszeit). *Optionen › Next wallpaper* springt sofort weiter.
+  Oder beim Laden: `set ROTATE=daily` (CMD) vor dem Befehl.
+- **Weg damit:** `tcl hintergruende aus`
+
+Die Fotos sind für den privaten Gebrauch, die Rechte liegen bei den Fotografen.
 
 ## Backup und alles neu
 
