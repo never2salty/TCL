@@ -105,10 +105,8 @@ TCL-Systemdienste. Eine App, die du doch willst, kommentierst du in der Liste mi
 Die App wird bei jeder Änderung in `home/` von GitHub Actions gebaut und als
 `home/tcl-home.apk` ins Repo gelegt. `git pull` holt die neueste Version.
 
-## Sperrbildschirm, Ausschalten, WLAN-Anzeige
+## Sperrbildschirm und WLAN-Anzeige
 
-- **Ausschalten:** oben links auf dem Home-Screen. Schaltet den TV in Standby wie die
-  Power-Taste.
 - **WLAN:** Unter dem Datum stehen der WLAN-Name und die Signalstärke (oder „LAN-Kabel“).
 - **Sperrbildschirm:** Die Zurück-Taste auf dem Home-Screen zeigt deine Hintergründe
   groß mit Uhr, Datum und WLAN. Die Bilder wechseln jede Minute. Jede Taste bringt
@@ -118,7 +116,7 @@ Die App wird bei jeder Änderung in `home/` von GitHub Actions gebaut und als
 
 Diese Funktionen brauchen ein paar Rechte, die `tcl home` setzt: Standort (nur damit
 Android den WLAN-Namen verrät), Einstellungen schreiben (Bildschirmschoner-Zeit) und
-den Bedienungshilfe-Dienst „TCL Home Tasten“ (Fernbedienung und Ausschalten). Die App
+den Bedienungshilfe-Dienst „TCL Home Tasten“ (Fernbedienung). Die App
 hat weiterhin keinen Internetzugriff.
 
 ## Apps aktualisieren
@@ -152,7 +150,7 @@ Tastencodes deiner Fernbedienung.
 
 Eine Taste umbelegen: `tcl taste <nummer> <ziel>`. Die Nummer zeigt `tcl tasten` an.
 Das Ziel ist ein App-Paketname oder `favorit`, `settings`, `wifi`, `inputs`, `saver`
-(Sperrbildschirm), `off` (Ausschalten) oder `home`. `tcl taste <nummer> aus` gibt die
+(Sperrbildschirm) oder `home`. `tcl taste <nummer> aus` gibt die
 Taste wieder frei.
 
 ## Wechselnde Hintergründe

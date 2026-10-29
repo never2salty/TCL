@@ -215,16 +215,6 @@ public final class Guard extends AccessibilityService {
         return Keys.handle(this, e);
     }
 
-    /**
-     * Puts the TV into standby, as the power button does. Android lets an accessibility service
-     * lock the screen, and on a TV that is standby. Returns false when the service is not running.
-     */
-    static boolean sleep(Context c) {
-        Guard g = running;
-        if (g == null || Build.VERSION.SDK_INT < 28) return false;
-        return g.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
-    }
-
     @Override
     public void onInterrupt() {}
 }

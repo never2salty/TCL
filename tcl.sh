@@ -317,7 +317,7 @@ set_guard() {
 }
 
 # Rechte für TCL Home: WLAN-Name (Standort), Bildschirmschoner-Zeit (Einstellungen schreiben),
-# Tasten und Ausschalten (Bedienungshilfe-Dienst). TCL startet so einen Dienst nur mit AUTO_START.
+# Tasten der Fernbedienung (Bedienungshilfe-Dienst). TCL startet so einen Dienst nur mit AUTO_START.
 home_rights() {
   dev pm grant $HOME_PKG android.permission.ACCESS_FINE_LOCATION
   dev pm grant $HOME_PKG android.permission.WRITE_SECURE_SETTINGS
@@ -329,7 +329,7 @@ home_rights() {
   set_guard 1
   dev settings put secure screensaver_enabled 1
   dev settings put secure screensaver_components "$HOME_PKG/.Dream"
-  note "Rechte gesetzt: WLAN-Anzeige, Sperrbildschirm, Tasten, Ausschalten"
+  note "Rechte gesetzt: WLAN-Anzeige, Sperrbildschirm, Tasten"
   sleep 3
   if dev dumpsys accessibility | grep -q 'TCL Home Tasten\|tv.dumbtv.home'; then
     note "Tasten-Dienst läuft"
@@ -339,7 +339,7 @@ home_rights() {
 }
 
 # Die Tasten deiner Fernbedienung: Name|Ziel. Ziel = App-Pakete (erstes installiertes gewinnt)
-# oder settings, wifi, inputs, saver, off, home, favorite (gewählte App nach vorne).
+# oder settings, wifi, inputs, saver, home, favorite (gewählte App nach vorne).
 KEYS_DEFAULT=(
   "Netflix|com.netflix.ninja"
   "Prime Video (öffnet Apple TV)|com.apple.atve.androidtv.appletv"
@@ -349,9 +349,22 @@ KEYS_DEFAULT=(
   "Favoriten (Lesezeichen oben links)|favorite"
 )
 
+# Spielt die App aus dem Repo ein, wenn auf dem TV eine ältere läuft (nach git pull).
+update_home() {
+  local have want
+  present $HOME_PKG || return 0
+  have=$(dev dumpsys package $HOME_PKG | sed -n 's/.*versionCode=\([0-9]*\).*/\1/p' | head -1)
+  want=$(sed -n 's/^VERSION_CODE=//p' home/version.env)
+  [[ -f $HOME_APK && ${have:-0} -lt ${want:-0} ]] || return 0
+  note "neue TCL-Home-Version gefunden, aktualisiere die App auf dem TV"
+  adb_ install -r "$HOME_APK" 2>&1 | grep -m1 -E 'Success|Failure|failed' | sed 's/^/   /'
+  home_rights >/dev/null
+}
+
 cmd_tasten() {
   pick_device; refresh
   present $HOME_PKG || die "erst TCL Home installieren: tcl home"
+  update_home
   step "Tasten der Fernbedienung einrichten"
   note "Für jede Taste: am TV die Taste einmal drücken, dann hier Enter."
   note "Enter ohne Drücken überspringt die Taste."
@@ -375,8 +388,9 @@ cmd_tasten() {
 }
 
 cmd_taste() {
-  [[ -n ${1:-} && -n ${2:-} ]] || die "usage: tcl taste <nummer> <ziel|aus>  (ziel: App-Paket, favorit, settings, wifi, inputs, saver, off, home)"
-  pick_device
+  [[ -n ${1:-} && -n ${2:-} ]] || die "usage: tcl taste <nummer> <ziel|aus>  (ziel: App-Paket, favorit, settings, wifi, inputs, saver, home)"
+  pick_device; refresh
+  update_home
   if [[ $2 == aus ]]; then set_home_conf "key.$1" ""; note "Taste $1 macht wieder, was der TV will"
   else set_home_conf "key.$1" "$2"; note "Taste $1 -> $2"; fi
 }

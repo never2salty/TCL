@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">TCL Home</string>
     <string name="guard_label">TCL Home Tasten</string>
-    <string name="guard_description">Lässt die App-Tasten der Fernbedienung (Netflix, YouTube, Einstellungen, ...) die gewählten Apps öffnen und schaltet den TV aus, wenn du auf dem Home-Screen Ausschalten wählst. Liest keine Bildschirminhalte, hat keinen Internetzugriff.</string>
+    <string name="guard_description">Lässt die App-Tasten der Fernbedienung (Netflix, YouTube, Einstellungen, ...) die gewählten Apps öffnen. Liest keine Bildschirminhalte, hat keinen Internetzugriff.</string>
 </resources>

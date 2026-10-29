@@ -321,12 +321,7 @@ public final class Home extends Activity {
         else if ("saver".equals(what)) lockScreen();
     }
 
-    private void powerOff() {
-        if (!Guard.sleep(this)) {
-            Toast.makeText(this, "Ausschalten braucht den Dienst \"TCL Home Tasten\": tcl home einmal neu ausführen",
-                    Toast.LENGTH_LONG).show();
-        }
-    }
+
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
@@ -568,13 +563,12 @@ public final class Home extends Activity {
         column.setPadding(0, dp(40), 0, dp(32));
         scroll.addView(column, new FrameLayout.LayoutParams(MATCH, WRAP));
 
-        // Top bar: Ausschalten on the left, the menu buttons on the right, above the clock.
+        // Top bar: the menu buttons on the right, above the clock.
         LinearLayout bar = new LinearLayout(this);
         bar.setClipChildren(false);
         bar.setClipToPadding(false);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(dp(46), 0, dp(56), dp(10));
-        bar.addView(chip("Ausschalten", v -> powerOff()));
         bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
         bar.addView(chip("Eingänge", v -> pickInput()));
         bar.addView(chip("WLAN", v -> openWifi()));
@@ -919,8 +913,7 @@ public final class Home extends Activity {
         View first = apps.tiles().getChildAt(0);
         if (first == null) first = inputs.tiles().getChildAt(0);
         landed = apps.tiles().getChildCount() > 0;
-        // chips.get(0) is Ausschalten: never land there by itself.
-        if (first == null) first = chips.get(1);
+        if (first == null) first = chips.get(0);
         first.requestFocus();
     }
 

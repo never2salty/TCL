@@ -14,7 +14,7 @@ import android.view.KeyEvent;
  * they did nothing. {@link Guard} filters every key; a key with a {@code key.<code>} line in
  * home.conf is taken here and opens its target, every other key passes through untouched.
  *
- * Targets: settings, wifi, inputs, saver, off, home, favorite (focused app to the front), or app packages separated by commas (the
+ * Targets: settings, wifi, inputs, saver, home, favorite (focused app to the front), or app packages separated by commas (the
  * first one installed opens). Every key press is logged under {@link #TAG}, which is how
  * {@code tcl.sh tasten} learns the codes of this remote.
  */
@@ -54,9 +54,6 @@ final class Keys {
             case "favorite":
             case "favorit":
                 if (Home.current != null) Home.current.favoriteFocused();
-                return;
-            case "off":
-                Guard.sleep(c);
                 return;
             default:
                 PackageManager pm = c.getPackageManager();
