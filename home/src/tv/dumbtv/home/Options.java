@@ -2,10 +2,13 @@ package tv.dumbtv.home;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.StateListDrawable;
 import android.media.tv.TvInputManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -57,10 +60,7 @@ public final class Options extends Activity {
         list.addView(action("Apps on home screen", () -> pick(Catalog.APPS)));
         list.addView(action("Inputs on home screen", () -> pick(Catalog.INPUTS)));
         list.addView(action("Reset order, names and hidden tiles", this::reset));
-        list.addView(action("Open Amazon's home screen", () -> {
-            Guard.amazon(this);
-            finish();
-        }));
+        list.addView(action("Sperrbildschirm jetzt zeigen", () -> startActivity(new Intent(this, Saver.class))));
 
         TextView about = Ui.text(this, 13, Ui.FAINT, Ui.MEDIUM);
         about.setLineSpacing(0, 1.4f);
@@ -134,6 +134,7 @@ public final class Options extends Activity {
         int n = c.values.length;
         cfg.set(c.key, c.values[((i + by) % n + n) % n]);
         refresh();
+        if (c == Config.SAVER) applySaver(cfg.get(c));
         if (c == Config.LOCK && "on".equals(cfg.get(c))) {
             Toast.makeText(this, "Options and Settings are hidden on the home screen now. "
                     + "Hold \u2630 Menu for " + Home.UNLOCK_MS / 1000 + " seconds to come back here.",
@@ -210,6 +211,25 @@ public final class Options extends Activity {
                 .setPositiveButton("Reset", (d, w) -> cfg.removePrefix("name.", "apps.", "inputs."))
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    /**
+     * Makes TCL Home Android's screensaver and sets its delay. Needs WRITE_SETTINGS and
+     * WRITE_SECURE_SETTINGS, which tcl.sh grants over adb; a plain install cannot.
+     */
+    private void applySaver(String value) {
+        if ("keep".equals(value)) return;
+        try {
+            ContentResolver r = getContentResolver();
+            boolean on = !"off".equals(value);
+            Settings.Secure.putInt(r, "screensaver_enabled", on ? 1 : 0);
+            if (!on) return;
+            Settings.Secure.putString(r, "screensaver_components", getPackageName() + "/.Dream");
+            Settings.System.putInt(r, Settings.System.SCREEN_OFF_TIMEOUT, Integer.parseInt(value) * 60_000);
+        } catch (SecurityException e) {
+            Toast.makeText(this, "Darf die TV-Einstellung nicht ändern. Einmal tcl home ausführen.",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private int dp(float v) {

@@ -105,7 +105,18 @@ final class Config {
 
     static final Choice TILE_STYLE = new Choice("tile_style", "App tile style", "original",
             new String[] {"original", "afterglow"}, new String[] {"Original", "Afterglow"});
-    static final Choice[] CHOICES = {ACCENT, TILES, LAYOUT, ORDER, LABELS, CLOCK, MEMORY, INPUTS, SWITCH, BACKGROUND, DIM, ROTATE, LOCK, TILE_STYLE};
+    /** Back on the home screen: the lock screen, or the first tile as upstream does. */
+    static final Choice BACK = new Choice("back", "Zurück-Taste", "saver",
+            new String[] {"saver", "first"},
+            new String[] {"Sperrbildschirm", "Erste Kachel"});
+    /**
+     * Android's screensaver delay (Settings.System.SCREEN_OFF_TIMEOUT on Android TV), written by
+     * {@link Options} when tcl.sh has allowed WRITE_SETTINGS. "keep" leaves the TV's own value.
+     */
+    static final Choice SAVER = new Choice("saver", "Sperrbildschirm nach", "keep",
+            new String[] {"keep", "5", "10", "15", "30", "60", "off"},
+            new String[] {"TV-Einstellung", "5 Minuten", "10 Minuten", "15 Minuten", "30 Minuten", "1 Stunde", "Nie"});
+    static final Choice[] CHOICES = {ACCENT, TILES, LAYOUT, ORDER, LABELS, CLOCK, MEMORY, INPUTS, SWITCH, BACKGROUND, DIM, ROTATE, BACK, SAVER, LOCK, TILE_STYLE};
 
     /** Folder of wallpapers, next to home.conf, that Background › Image file rotates through. */
     static final String WALLPAPERS = "wallpapers";

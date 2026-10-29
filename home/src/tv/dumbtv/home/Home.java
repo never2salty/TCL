@@ -69,7 +69,11 @@ public final class Home extends Activity {
     private ImageView wall;
     private View shade;
     private View tint;
-    private TextView clock, date;
+    private TextView clock, date, net;
+    private WifiIcon netIcon;
+    /** What a remote button asked this screen to open (see {@link Keys}), done on resume. */
+    private String pendingOpen;
+    static final String EXTRA_OPEN = "open";
     private Meter meter;
     private Row apps, inputs;
     private Map<String, Long> recent = new HashMap<>();
@@ -234,8 +238,12 @@ public final class Home extends Activity {
         IntentFilter f = new IntentFilter(Intent.ACTION_TIME_TICK);
         f.addAction(Intent.ACTION_TIME_CHANGED);
         f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        f.addAction(android.net.ConnectivityManager.CONNECTIVITY_ACTION);
+        f.addAction(android.net.wifi.WifiManager.RSSI_CHANGED_ACTION);
+        f.addAction(android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION);
         registerReceiver(time, f);
         tick();
+        openPending();
     }
 
     @Override
@@ -283,12 +291,37 @@ public final class Home extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (moving != null) stopMoving();
-        if (resumed) focusFirst();
+        pendingOpen = intent.getStringExtra(EXTRA_OPEN);
+        if (resumed) {
+            focusFirst();
+            openPending();
+        }
     }
 
+    /** Back on the home screen locks it (Options › Back button), or jumps to the first tile. */
     @Override
     public void onBackPressed() {
-        focusFirst();
+        if ("saver".equals(cfg.get(Config.BACK))) lockScreen();
+        else focusFirst();
+    }
+
+    private void lockScreen() {
+        startActivity(new Intent(this, Saver.class));
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    private void openPending() {
+        String what = pendingOpen;
+        pendingOpen = null;
+        if ("inputs".equals(what)) pickInput();
+        else if ("saver".equals(what)) lockScreen();
+    }
+
+    private void powerOff() {
+        if (!Guard.sleep(this)) {
+            Toast.makeText(this, "Ausschalten braucht den Dienst \"TCL Home Tasten\": tcl home einmal neu ausführen",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -531,6 +564,20 @@ public final class Home extends Activity {
         column.setPadding(0, dp(40), 0, dp(32));
         scroll.addView(column, new FrameLayout.LayoutParams(MATCH, WRAP));
 
+        // Top bar: Ausschalten on the left, the menu buttons on the right, above the clock.
+        LinearLayout bar = new LinearLayout(this);
+        bar.setClipChildren(false);
+        bar.setClipToPadding(false);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(46), 0, dp(56), dp(10));
+        bar.addView(chip("Ausschalten", v -> powerOff()));
+        bar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
+        bar.addView(chip("Eingänge", v -> pickInput()));
+        bar.addView(chip("WLAN", v -> openWifi()));
+        bar.addView(chip("Einstellungen", v -> openSettings()));
+        bar.addView(chip("Optionen", v -> startActivity(new Intent(this, Options.class))));
+        column.addView(bar, new LinearLayout.LayoutParams(MATCH, WRAP));
+
         LinearLayout head = new LinearLayout(this);
         head.setClipChildren(false);
         head.setClipToPadding(false);
@@ -543,6 +590,13 @@ public final class Home extends Activity {
         date.setPadding(dp(2), dp(8), 0, 0);
         when.addView(clock);
         when.addView(date);
+        net = Ui.text(this, 15, Ui.MUTED, Ui.MEDIUM);
+        net.setPadding(dp(2), dp(8), 0, 0);
+        net.setGravity(Gravity.CENTER_VERTICAL);
+        netIcon = new WifiIcon(dp(15), Ui.MUTED);
+        net.setCompoundDrawables(netIcon, null, null, null);
+        net.setCompoundDrawablePadding(dp(7));
+        when.addView(net);
         meter = new Meter(this);
         meter.setVisibility(View.GONE);
         LinearLayout.LayoutParams under = new LinearLayout.LayoutParams(WRAP, WRAP);
@@ -550,10 +604,6 @@ public final class Home extends Activity {
         under.leftMargin = dp(2);
         when.addView(meter, under);
         head.addView(when, new LinearLayout.LayoutParams(0, WRAP, 1f));
-        head.addView(chip("Eingänge", v -> pickInput()));
-        head.addView(chip("WLAN", v -> openWifi()));
-        head.addView(chip("Einstellungen", v -> openSettings()));
-        head.addView(chip("Optionen", v -> startActivity(new Intent(this, Options.class))));
         column.addView(head, new LinearLayout.LayoutParams(MATCH, WRAP));
 
         apps = new Row(Catalog.APPS, "Apps", column);
@@ -865,7 +915,8 @@ public final class Home extends Activity {
         View first = apps.tiles().getChildAt(0);
         if (first == null) first = inputs.tiles().getChildAt(0);
         landed = apps.tiles().getChildCount() > 0;
-        if (first == null) first = chips.get(0);
+        // chips.get(0) is Ausschalten: never land there by itself.
+        if (first == null) first = chips.get(1);
         first.requestFocus();
     }
 
@@ -883,6 +934,9 @@ public final class Home extends Activity {
         }
         Locale locale = Locale.getDefault();
         date.setText(DateFormat.format(DateFormat.getBestDateTimePattern(locale, "EEEEdMMMM"), now));
+        Net n = Net.now(this);
+        net.setText(n.label);
+        netIcon.setSignal(n.level);
         if (meter.getVisibility() == View.VISIBLE) {
             meter.update((android.app.ActivityManager) getSystemService(Context.ACTIVITY_SERVICE));
         }
@@ -963,10 +1017,7 @@ public final class Home extends Activity {
      * Guard then replaces with ours. The TV settings entry point opens the real settings screen.
      */
     private void openSettings() {
-        Intent tvSettings = new Intent(Intent.ACTION_MAIN)
-                .addCategory("android.intent.category.LEANBACK_SETTINGS");
-        boolean found = tvSettings.resolveActivity(getPackageManager()) != null;
-        launch(found ? tvSettings : new Intent(Settings.ACTION_SETTINGS), null);
+        launch(Keys.settings(this), null);
     }
 
     private void open(Tile t) {

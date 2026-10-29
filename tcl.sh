@@ -15,6 +15,8 @@
 #   ./tcl.sh hintergruende [n|ordner|aus]  wechselnde Hintergründe: n Google-Backdrops
 #                                (Standard 30) oder alle Bilder aus einem Ordner
 #   ./tcl.sh youtube             SmartTube installieren (YouTube ohne Werbung)
+#   ./tcl.sh tasten              Tasten der Fernbedienung belegen (Netflix, YouTube, ...)
+#   ./tcl.sh taste <nr> <ziel>   eine Taste umbelegen
 #   ./tcl.sh backup              Backup von Einstellungen, Home-Screen und App-Liste
 #   ./tcl.sh wiederherstellen    Patch + Backup neu aufspielen (z. B. nach Werksreset)
 #   ./tcl.sh neu                 alles zurück, dann frisch patchen + Backup laden
@@ -292,12 +294,110 @@ cmd_dns() {
   fi
 }
 
+GUARD=$HOME_PKG/$HOME_PKG.Guard
+
+# Schaltet den Tasten-Dienst von TCL Home an (an=1) oder aus, ohne andere Dienste anzufassen.
+# Erst leeren, dann setzen: so bindet Android einen Dienst neu, dessen Prozess neu ist.
+set_guard() {
+  local cur rest
+  cur=$(dev settings get secure enabled_accessibility_services)
+  [[ $cur == null ]] && cur=
+  rest=$(printf '%s' "$cur" | tr ':' '\n' | { grep -vxF -e "$GUARD" -e "$HOME_PKG/.Guard" -e '' || true; } | paste -sd: -)
+  if [[ $1 == 1 ]]; then
+    dev settings put secure enabled_accessibility_services "\"\""
+    sleep 1
+    dev settings put secure enabled_accessibility_services "${rest:+$rest:}$GUARD"
+    dev settings put secure accessibility_enabled 1
+  elif [[ -n $rest ]]; then
+    dev settings put secure enabled_accessibility_services "$rest"
+  else
+    dev settings delete secure enabled_accessibility_services >/dev/null
+    dev settings put secure accessibility_enabled 0
+  fi
+}
+
+# Rechte für TCL Home: WLAN-Name (Standort), Bildschirmschoner-Zeit (Einstellungen schreiben),
+# Tasten und Ausschalten (Bedienungshilfe-Dienst). TCL startet so einen Dienst nur mit AUTO_START.
+home_rights() {
+  dev pm grant $HOME_PKG android.permission.ACCESS_FINE_LOCATION
+  dev pm grant $HOME_PKG android.permission.WRITE_SECURE_SETTINGS
+  dev appops set $HOME_PKG WRITE_SETTINGS allow
+  dev appops set $HOME_PKG AUTO_START allow
+  # Ohne eingeschalteten Standort verrät Android den WLAN-Namen nicht.
+  dev settings put secure location_mode 3
+  dev cmd location set-location-enabled true >/dev/null
+  set_guard 1
+  dev settings put secure screensaver_enabled 1
+  dev settings put secure screensaver_components "$HOME_PKG/.Dream"
+  note "Rechte gesetzt: WLAN-Anzeige, Sperrbildschirm, Tasten, Ausschalten"
+  sleep 3
+  if dev dumpsys accessibility | grep -q 'TCL Home Tasten\|tv.dumbtv.home'; then
+    note "Tasten-Dienst läuft"
+  else
+    note "Tasten-Dienst läuft noch nicht. Einmal TV aus- und einschalten, dann: tcl tasten"
+  fi
+}
+
+# Die Tasten deiner Fernbedienung: Name|Ziel. Ziel = App-Pakete (erstes installiertes gewinnt)
+# oder settings, wifi, inputs, saver, off, home.
+KEYS_DEFAULT=(
+  "Netflix|com.netflix.ninja"
+  "Prime Video (öffnet Apple TV)|com.apple.atve.androidtv.appletv"
+  "YouTube|$ST_PKG,$YT_PKG"
+  "TCL Channel (öffnet IPTV Smarters Pro)|com.nst.iptvsmarterstvbox"
+  "Einstellungen (Zahnrad oben rechts)|settings"
+  "Favoriten (Lesezeichen oben links)|inputs"
+)
+
+cmd_tasten() {
+  pick_device; refresh
+  present $HOME_PKG || die "erst TCL Home installieren: tcl home"
+  step "Tasten der Fernbedienung einrichten"
+  note "Für jede Taste: am TV die Taste einmal drücken, dann hier Enter."
+  note "Enter ohne Drücken überspringt die Taste."
+  home_rights >/dev/null
+  local entry name target code a
+  for entry in "${KEYS_DEFAULT[@]}"; do
+    name=${entry%%|*}; target=${entry#*|}
+    if [[ $name == Favoriten* && $YES == 0 ]]; then
+      read -r -p "   Was soll die Favoriten-Taste öffnen? [Enter = Eingänge-Liste, oder App-Paketname] " a <&3 || true
+      [[ -n $a ]] && target=$a
+    fi
+    dev logcat -c
+    read -r -p "   Taste '$name' drücken, dann Enter... " a <&3 || true
+    sleep 1
+    code=$(dev logcat -d -s Keys:I TclHomeKey:I | sed -n 's/.*key \([0-9][0-9]*\) .*/\1/p' | tail -1)
+    if [[ -z $code ]]; then
+      note "keine Taste erkannt, übersprungen"
+      continue
+    fi
+    set_home_conf "key.$code" "$target"
+    note "Taste $code -> $target"
+  done
+  note "Fertig. Einmal HOME drücken, dann gelten die Tasten."
+  note "Eine Taste ändern: tcl taste <nummer> <ziel>   (Nummern stehen oben)"
+}
+
+cmd_taste() {
+  [[ -n ${1:-} && -n ${2:-} ]] || die "usage: tcl taste <nummer> <ziel|aus>  (ziel: App-Paket, settings, wifi, inputs, saver, off, home)"
+  pick_device
+  if [[ $2 == aus ]]; then set_home_conf "key.$1" ""; note "Taste $1 macht wieder, was der TV will"
+  else set_home_conf "key.$1" "$2"; note "Taste $1 -> $2"; fi
+}
+
 cmd_home() {
   pick_device; refresh; snapshot
   local p
   if [[ ${1:-} == aus ]]; then
     step "Google-TV-Home zurückholen"
     for p in $STOCK_HOME; do enable_pkg "$p"; done
+    set_guard 0
+    if [[ $(dev settings get secure screensaver_components) == $HOME_PKG/* ]]; then
+      local ss
+      ss=$(before screensaver_components)
+      [[ -z $ss || $ss == null ]] && ss=$AOSP_DREAM
+      dev settings put secure screensaver_components "$ss"
+    fi
     dev am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
     note "TCL Home bleibt installiert (entfernen: adb uninstall $HOME_PKG)"
     return
@@ -320,6 +420,7 @@ cmd_home() {
   note "$out"
   refresh
   present $HOME_PKG || die "TCL Home ist nicht installiert, Google TV bleibt Home-Screen"
+  home_rights
   # Beide Pakete zusammen: setupwraith beantwortet HOME sonst selbst und kann abstürzen.
   for p in $STOCK_HOME; do disable_pkg "$p" --home; done
   # Bleibt noch ein TCL-Home übrig, zeigt Android sonst eine Auswahl.
@@ -330,12 +431,13 @@ cmd_home() {
   now=$(dev cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1)
   note "HOME öffnet jetzt: $now"
   if [[ $now != $HOME_PKG/* ]]; then
-    note "HOME zeigt nicht auf dumbtv home. Zurück mit: ./tcl.sh home aus"
+    note "HOME zeigt nicht auf TCL Home. Zurück mit: ./tcl.sh home aus"
     return 1
   fi
   note "Wichtig: TV jetzt ~1 Minute nicht ausschalten, damit Android den Zustand speichert."
   note "Apps ein-/ausblenden, sortieren, Kachelgröße: oben rechts 'Optionen'."
   note "Neue Apps: Play Store in Optionen > Apps on home screen anhaken."
+  note "Tasten der Fernbedienung (Netflix, YouTube, ...) einrichten: tcl tasten"
 }
 
 cmd_youtube() {
@@ -547,6 +649,7 @@ cmd_rueckgaengig_keep() {
 reset_all() {
   local p ss
   while read -r p; do [[ -n $p ]] && enable_pkg "$p"; done < <(cat "$STATE/deaktiviert.txt")
+  set_guard 0
   cmd_dns aus
   ss=$(before screensaver_components)
   if [[ -n $ss && $ss != null ]]; then dev settings put secure screensaver_components "$ss"; fi
@@ -559,7 +662,7 @@ args=()
 for a in "$@"; do
   case $a in
     -y|--yes) YES=1 ;;
-    -h|--help) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) args+=("$a") ;;
   esac
 done
@@ -568,7 +671,7 @@ set -- "${args[@]+"${args[@]}"}"
 cmd=${1:-}
 shift || true
 case $cmd in
-  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|hintergruende|youtube|backup|wiederherstellen|neu|rueckgaengig)
+  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|hintergruende|youtube|tasten|taste|backup|wiederherstellen|neu|rueckgaengig)
     "cmd_$cmd" "$@" ;;
-  *) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

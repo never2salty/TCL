@@ -105,6 +105,48 @@ TCL-Systemdienste. Eine App, die du doch willst, kommentierst du in der Liste mi
 Die App wird bei jeder Änderung in `home/` von GitHub Actions gebaut und als
 `home/tcl-home.apk` ins Repo gelegt. `git pull` holt die neueste Version.
 
+## Sperrbildschirm, Ausschalten, WLAN-Anzeige
+
+- **Ausschalten:** oben links auf dem Home-Screen. Schaltet den TV in Standby wie die
+  Power-Taste.
+- **WLAN:** Unter dem Datum stehen der WLAN-Name und die Signalstärke (oder „LAN-Kabel“).
+- **Sperrbildschirm:** Die Zurück-Taste auf dem Home-Screen zeigt deine Hintergründe
+  groß mit Uhr, Datum und WLAN. Die Bilder wechseln jede Minute. Jede Taste bringt
+  dich zurück. Derselbe Bildschirm ist auch der Bildschirmschoner des TVs.
+- **Einstellen** unter *Optionen*: *Zurück-Taste* (Sperrbildschirm oder erste Kachel)
+  und *Sperrbildschirm nach* (5 Min bis 1 Std oder Nie).
+
+Diese Funktionen brauchen ein paar Rechte, die `tcl home` setzt: Standort (nur damit
+Android den WLAN-Namen verrät), Einstellungen schreiben (Bildschirmschoner-Zeit) und
+den Bedienungshilfe-Dienst „TCL Home Tasten“ (Fernbedienung und Ausschalten). Die App
+hat weiterhin keinen Internetzugriff.
+
+## Tasten der Fernbedienung
+
+Die App-Tasten hat der Google-TV-Home-Screen gesteuert, deshalb taten sie nach dem
+Patch nichts mehr. `tcl tasten` belegt sie neu:
+
+```bat
+tcl tasten
+```
+
+Für jede Taste: am TV einmal drücken, dann am PC Enter. So lernt das Skript die
+Tastencodes deiner Fernbedienung.
+
+| Taste | öffnet |
+|---|---|
+| Netflix | Netflix |
+| Prime Video | Apple TV |
+| YouTube | SmartTube (oder YouTube, wenn SmartTube fehlt) |
+| TCL Channel | IPTV Smarters Pro |
+| Einstellungen (Zahnrad) | TV-Einstellungen |
+| Favoriten (Lesezeichen) | fragt nach, Standard: Liste der Eingänge |
+
+Eine Taste umbelegen: `tcl taste <nummer> <ziel>`. Die Nummer zeigt `tcl tasten` an.
+Das Ziel ist ein App-Paketname oder `settings`, `wifi`, `inputs`, `saver`
+(Sperrbildschirm), `off` (Ausschalten) oder `home`. `tcl taste <nummer> aus` gibt die
+Taste wieder frei.
+
 ## Wechselnde Hintergründe
 
 ```bat

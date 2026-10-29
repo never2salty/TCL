@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
@@ -206,6 +207,22 @@ public final class Guard extends AccessibilityService {
     private void uncover() {
         handler.removeCallbacks(uncover);
         if (cover != null) cover.setVisibility(View.GONE);
+    }
+
+    /** The remote's app and menu buttons; see {@link Keys}. */
+    @Override
+    protected boolean onKeyEvent(KeyEvent e) {
+        return Keys.handle(this, e);
+    }
+
+    /**
+     * Puts the TV into standby, as the power button does. Android lets an accessibility service
+     * lock the screen, and on a TV that is standby. Returns false when the service is not running.
+     */
+    static boolean sleep(Context c) {
+        Guard g = running;
+        if (g == null || Build.VERSION.SDK_INT < 28) return false;
+        return g.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
     }
 
     @Override
