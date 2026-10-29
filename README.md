@@ -14,16 +14,14 @@ wird gelöscht, nur deaktiviert. Alles lässt sich zurückdrehen.
 **1. Git für Windows installieren.** Dafür brauchst du kein winget. Auf
 [git-scm.com/download/win](https://git-scm.com/download/win) den Installer
 herunterladen („64-bit Git for Windows Setup“) und bei allem *Weiter* klicken.
-Danach hast du das Programm **Git Bash** im Startmenü. Darin laufen alle Befehle
-unten.
 
-**2. Dieses Projekt holen.** Git Bash öffnen und eingeben:
+**2. Dieses Projekt holen.** CMD öffnen und eingeben:
 
-```bash
-cd ~/Desktop
+```bat
+cd %USERPROFILE%\Desktop
 ```
 
-```bash
+```bat
 git clone -b claude/serene-ramanujan-fj301a https://github.com/never2salty/tcl
 ```
 
@@ -32,44 +30,46 @@ Jetzt liegt auf dem Desktop ein Ordner `tcl`.
 **3. platform-tools hineinlegen.** Die heruntergeladene ZIP entpacken. Den
 entstandenen Ordner **`platform-tools`** (da drin liegen `adb.exe` und viele
 andere Dateien) komplett in den Ordner `tcl` auf dem Desktop schieben. Mehr musst
-du mit den Dateien nicht machen. Das Skript findet `adb.exe` dort von selbst.
-Liegt `platform-tools` noch in *Downloads*, findet es ihn auch dort.
+du mit den Dateien nicht machen.
 
 **4. Am TV Entwickleroptionen einschalten.** *Einstellungen › System › Info ›
 Android TV OS-Build* markieren und 7× OK drücken, bis „Sie sind jetzt Entwickler“
 kommt. Dann *Einstellungen › System › Entwickleroptionen › USB-Debugging*
 einschalten.
 
-**5. IP-Adresse des TVs.** *Einstellungen › Netzwerk und Internet ›* dein WLAN.
-Dort steht sie, z. B. `192.168.178.42`.
+**5. IP-Adresse des TVs.** *Einstellungen › Netzwerk und Internet ›* dein WLAN ›
+Status. Dort steht sie, z. B. `192.168.178.27`.
 
 ## Patchen
 
-In Git Bash:
+In CMD (ohne `./` und ohne `.sh`):
 
-```bash
-cd ~/Desktop/tcl
+```bat
+cd %USERPROFILE%\Desktop\tcl
 ```
 
-```bash
-./tcl.sh verbinden 192.168.178.42
+```bat
+tcl verbinden 192.168.178.27
 ```
 
 Am TV „USB-Debugging zulassen?“ mit Haken bei *Immer zulassen* bestätigen.
 
-```bash
-./tcl.sh check
+```bat
+tcl check
 ```
 
 Zeigt, was sich ändern würde. Ändert noch nichts.
 
-```bash
-./tcl.sh patch
+```bat
+tcl patch
 ```
 
 Macht zuerst ein Backup und fragt dann vor jedem Schritt mit j/N. Wenn der TV per
 Play Protect fragt, **Trotzdem installieren** drücken. Danach den TV etwa eine
 Minute anlassen.
+
+Alle Befehle unten funktionieren genauso: In CMD schreibst du `tcl backup`, in
+Git Bash, auf dem Mac oder unter Linux `./tcl.sh backup`.
 
 ## Was passiert
 

@@ -1,0 +1,7 @@
+*.sh text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.cmd text eol=crlf
+*.apk binary
+*.jpg binary
+*.keystore binary

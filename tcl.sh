@@ -21,6 +21,8 @@
 # Optionen: -y beantwortet alle Fragen mit Ja. Mehrere Geräte: ADB_SERIAL=<ip:port>.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
+# Antworten vom Terminal lesen; aus CMD gestartet gibt es manchmal kein /dev/tty.
+{ exec 3</dev/tty; } 2>/dev/null || exec 3<&0
 
 ADB=${ADB:-adb}
 YES=0
@@ -61,7 +63,7 @@ find_adb() {
 ask() {
   local a
   [[ $YES == 1 ]] && { printf '%s [j/N] j\n' "$1"; return 0; }
-  read -r -p "$1 [j/N] " a </dev/tty || return 1
+  read -r -p "$1 [j/N] " a <&3 || return 1
   [[ $a =~ ^[jJyY] ]]
 }
 
