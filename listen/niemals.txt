@@ -1,0 +1,42 @@
+# Diese Pakete fasst tcl.sh NIE an, auch wenn sie in einer anderen Liste stehen.
+# Ohne sie fehlen Eingänge, Fernbedienung, Einstellungen, Cast oder Sprache.
+
+# Android/Google-Grundsystem
+com.android.systemui
+com.android.settings
+com.android.tv.settings
+com.android.packageinstaller
+com.android.permissioncontroller
+com.android.vending
+com.google.android.gms
+com.google.android.gsf
+com.google.android.webview
+com.android.providers.settings
+com.android.providers.tv
+com.android.tv                               # TV-Eingänge (Framework)
+com.google.android.tv.remote.service         # Fernbedienung / Handy-Fernbedienung
+com.google.android.katniss                   # Sprachsuche / Mikrofon-Taste
+com.google.android.apps.mediashell           # Chromecast built-in (an den TV pushen!)
+
+# Home: nur `./tcl.sh home` darf diese beiden deaktivieren (und nur zusammen)
+com.google.android.apps.tv.launcherx
+com.google.android.tungsten.setupwraith
+
+# TCL: Eingänge, Fernbedienung, Systemdienste
+com.tcl.tv                                   # HDMI-Eingänge und TV-Tuner
+com.tcl.tvinput
+com.tcl.autopair                             # Kopplung der Fernbedienung
+com.tcl.globalkeyoverlay                     # Sondertasten der Fernbedienung
+com.tcl.systemserver
+com.tcl.dashboard                            # Schnellmenü (Bild/Ton)
+com.tcl.ttvs                                 # TCL-Dienste inkl. Update
+com.tcl.providers.config
+com.tcl.suspension                           # Quellen-/Eingangsumschaltung auf manchen TCLs
+com.tcl.factory.view
+com.tcl.airplay2                             # AirPlay
+com.tcl.initsetup
+
+# MediaTek (Chip im C735)
+com.mediatek.wwtv.tvcenter
+com.mediatek.tvinput
+com.mediatek.tv.service

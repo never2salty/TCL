@@ -1,0 +1,14 @@
+# Unnötiger Ballast, aber keine Werbung. `./tcl.sh extras` fragt vorher.
+# Jede Zeile kostet eine Funktion; auskommentieren, was du brauchst.
+com.tcl.smartalexa                           # Alexa-Steuerung des TVs
+com.tcl.usercenter                           # TCL-Konto
+com.tcl.ocean.instructions                   # Bedienungsanleitung auf dem TV
+com.tcl.repairguide                          # Reparaturhilfe auf dem TV
+com.tcl.browser                              # TCL-Browser
+com.tcl.gamebar                              # Game-Bar-Overlay (brauchst du für Konsole/VRR-Anzeige nicht zwingend)
+com.tcl.hotelmenu                            # Hotelmodus
+com.google.android.play.games                # Google Play Spiele
+com.android.printspooler                     # Drucken
+com.android.healthconnect.controller         # Health Connect
+com.google.android.videos                    # Google TV Filme-Shop
+com.google.android.youtube.tvmusic           # YouTube Music

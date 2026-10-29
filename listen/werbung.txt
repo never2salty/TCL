@@ -1,0 +1,34 @@
+# Werbung, Tracking und Promo-Kram. `./tcl.sh werbung` deaktiviert diese Pakete
+# (pm disable-user, nichts wird gelöscht). Pakete, die es auf dem TV nicht gibt,
+# werden übersprungen. Zeile mit # auskommentieren, wenn du etwas behalten willst.
+#
+# Grundlage: TCL G08 (Android 14) und G10 (Android 12) aus dem dumbtv-Katalog,
+# dort auf echten Geräten deaktiviert, ohne dass der TV Probleme machte.
+
+# --- TCL: Werbekanäle, Promo-Kacheln, Nachrichten ---
+com.tcl.tv.plus                              # TCL TV+ / Gratis-Kanäle mit Werbung
+com.tcl.channelplus                          # TCL Channel (FAST-Kanäle mit Werbung)
+com.tcl.tv.tclhome_passive                   # TCL-Inhaltsvorschläge im Home-Screen
+com.tcl.partnercustomizer                    # TCL-Kacheln und Reihen in Google TV
+com.tcl.messagebox                           # TCL-Nachrichten / Hinweise
+com.tcl.smartlink.core                       # installiert Partner-Apps im Hintergrund
+
+# --- TCL: Tracking, Logs, Ladenmodus ---
+com.tcl.interactive                          # TIAS-Hintergrunddienst (Inhaltserkennung)
+com.tcl.logkit                               # Log-Sammlung
+com.tcl.exhibit                              # Vorführmodus im Laden
+com.tcl.esticker                             # Laden-Aufkleber/Infoeinblendungen
+
+# --- Inhaltserkennung (ACR), falls vorhanden ---
+tv.samba.ssm                                 # Samba TV
+tv.samba.ssm.ui                              # Samba TV Oberfläche
+
+# --- Google: Werbung, Telemetrie, Partner-Installationen ---
+android.autoinstalls.config.google.gtvpai    # installiert Partner-Apps automatisch
+com.google.android.partnersetup              # Partner-/Hersteller-Attribution
+com.google.android.feedback                  # Feedback- und Absturzberichte
+com.android.tv.feedbackconsent               # Feedback-Einwilligung
+com.google.android.apps.tv.dreamx            # Google-TV-Bildschirmschoner mit Promo-Bildern
+com.android.adservices.api                   # Werbe-APIs (erst ab Android 13)
+com.android.ondevicepersonalization.services # Werbe-Personalisierung
+com.android.federatedcompute.services        # Personalisierung
