@@ -26,6 +26,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 # Antworten vom Terminal lesen; aus CMD gestartet gibt es manchmal kein /dev/tty.
 { exec 3</dev/tty; } 2>/dev/null || exec 3<&0
 
+# Git Bash unter Windows schreibt Argumente wie /sdcard/... sonst in C:/Program Files/Git/sdcard/...
+# um, bevor adb.exe sie sieht.
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
+
 ADB=${ADB:-adb}
 YES=0
 DNS_HOST=${DNS_HOST:-dns.adguard-dns.com}
