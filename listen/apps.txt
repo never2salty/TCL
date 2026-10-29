@@ -1,0 +1,9 @@
+# Vorinstallierte Apps, die du nicht willst. `./tcl.sh apps` deaktiviert sie
+# (verschwinden vom Home-Screen, `./tcl.sh rueckgaengig` holt sie zurück).
+# Was hier nicht steht, bleibt. Eigene Zeilen dazuschreiben: den Paketnamen
+# zeigt `./tcl.sh check` unter "Installierte Apps".
+tv.wuaki.apptv                               # Rakuten TV
+tv.pluto.android                             # Pluto TV
+com.google.android.videos                    # Google TV Filme-Shop
+com.google.android.youtube.tvmusic           # YouTube Music
+com.google.android.play.games                # Google Play Spiele

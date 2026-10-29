@@ -7,10 +7,15 @@
 #   ./tcl.sh check               zeigt, was sich ändern würde; ändert nichts
 #   ./tcl.sh patch               alles nacheinander, fragt vor jedem Schritt
 #   ./tcl.sh werbung             Werbe-/Tracking-Pakete deaktivieren
+#   ./tcl.sh apps                vorinstallierte Apps weg (Rakuten TV, Pluto TV, ...)
 #   ./tcl.sh extras              Ballast deaktivieren (Alexa, Anleitung, ...)
 #   ./tcl.sh dns [aus]           werbefilterndes Private DNS an/aus
-#   ./tcl.sh home [aus]          schlichten Home-Screen (dumbtv home) an/aus
+#   ./tcl.sh home [aus]          schlichter Home-Screen (TCL Home) an/aus
+#   ./tcl.sh hintergrund <bild>  eigenes Hintergrundbild (jpg/png) auf den TV
 #   ./tcl.sh youtube             SmartTube installieren (YouTube ohne Werbung)
+#   ./tcl.sh backup              Backup von Einstellungen, Home-Screen und App-Liste
+#   ./tcl.sh wiederherstellen    Patch + Backup neu aufspielen (z. B. nach Werksreset)
+#   ./tcl.sh neu                 alles zurück, dann frisch patchen + Backup laden
 #   ./tcl.sh rueckgaengig        alles zurück wie vorher
 #
 # Optionen: -y beantwortet alle Fragen mit Ja. Mehrere Geräte: ADB_SERIAL=<ip:port>.
@@ -22,8 +27,8 @@ YES=0
 DNS_HOST=${DNS_HOST:-dns.adguard-dns.com}
 
 HOME_PKG=tv.dumbtv.home
-HOME_URL=https://github.com/humblemuzzu/dumbtv/releases/download/launcher-v1.6/dumbtv-home.apk
-HOME_SHA256=9e0f95ed141a980295eba0649ee2f7d1d8b49eacced31246bd2445d92954fdd9
+HOME_APK=home/tcl-home.apk
+HOME_MEDIA=/sdcard/Android/media/$HOME_PKG
 STOCK_HOME="com.google.android.apps.tv.launcherx com.google.android.tungsten.setupwraith"
 
 ST_PKG=org.smarttube.stable
@@ -39,6 +44,19 @@ say()  { printf '%s\n' "$*"; }
 step() { printf '\n== %s\n' "$*"; }
 note() { printf '   %s\n' "$*"; }
 die()  { printf 'Fehler: %s\n' "$*" >&2; exit 1; }
+
+# adb ohne PATH-Gefummel: der platform-tools-Ordner darf neben diesem Skript oder in
+# Downloads liegen.
+find_adb() {
+  command -v "$ADB" >/dev/null && return
+  local d
+  for d in ./platform-tools "$HOME/Downloads/platform-tools" "$HOME/Downloads/platform-tools-latest-windows/platform-tools" \
+           "${USERPROFILE:-/nonexistent}/Downloads/platform-tools"; do
+    if [[ -x $d/adb.exe ]]; then ADB=$d/adb.exe; return; fi
+    if [[ -x $d/adb ]]; then ADB=$d/adb; return; fi
+  done
+  die "adb nicht gefunden. Den entpackten Ordner 'platform-tools' in diesen Ordner ($(pwd)) verschieben."
+}
 
 ask() {
   local a
@@ -74,7 +92,7 @@ fetch() {
 }
 
 pick_device() {
-  command -v "$ADB" >/dev/null || die "adb nicht gefunden. Android platform-tools installieren: https://developer.android.com/tools/releases/platform-tools"
+  find_adb
   if [[ -n ${ADB_SERIAL:-} ]]; then
     SERIAL=$ADB_SERIAL
   else
@@ -86,7 +104,10 @@ pick_device() {
     SERIAL=$list
   fi
   [[ $(adb_ get-state 2>/dev/null | tr -d '\r') == device ]] || die "$SERIAL antwortet nicht (am TV 'Zulassen' gedrückt?)"
-  STATE=zustand/$(printf '%s' "$SERIAL" | tr -c 'A-Za-z0-9._-' '_')
+  # Nach Seriennummer, nicht IP: die IP kann sich ändern, der TV nicht.
+  local id
+  id=$(dev getprop ro.serialno)
+  STATE=zustand/$(printf '%s' "${id:-$SERIAL}" | tr -c 'A-Za-z0-9._-' '_')
   mkdir -p "$STATE"
   touch "$STATE/deaktiviert.txt"
 }
@@ -172,7 +193,7 @@ cmd_verbinden() {
   [[ -n ${1:-} ]] || die "usage: ./tcl.sh verbinden <tv-ip>[:port]"
   local target=$1
   [[ $target == *:* ]] || target=$target:5555
-  command -v "$ADB" >/dev/null || die "adb nicht gefunden"
+  find_adb
   "$ADB" connect "$target"
   say "Jetzt am TV 'USB-Debugging zulassen' bestätigen (Haken bei 'Immer zulassen')."
   for _ in $(seq 1 30); do
@@ -185,7 +206,7 @@ cmd_verbinden() {
 cmd_check() {
   pick_device; device_info; refresh
   local p state
-  for list in werbung extras; do
+  for list in werbung apps extras; do
     step "$list.txt"
     while read -r p; do
       if ! present "$p"; then continue
@@ -202,6 +223,8 @@ cmd_check() {
     never "$p" && continue
     note "$p$(disabled "$p" && printf ' (aus)')"
   done
+  step "Installierte Apps (nicht vom System)"
+  dev pm list packages -3 | sed 's/^package:/   /'
   step "Home-Screen"
   note "aktuell: $(dev cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME | tail -1)"
   present $HOME_PKG && note "dumbtv home ist installiert"
@@ -216,6 +239,14 @@ cmd_werbung() {
   local p
   while read -r p; do disable_pkg "$p"; done < <(pkgs_of listen/werbung.txt)
   fix_screensaver
+}
+
+cmd_apps() {
+  pick_device; refresh; snapshot
+  step "Vorinstallierte Apps entfernen (Rakuten TV, Pluto TV, ...)"
+  ask "Apps aus listen/apps.txt deaktivieren?" || return 0
+  local p
+  while read -r p; do disable_pkg "$p"; done < <(pkgs_of listen/apps.txt)
 }
 
 cmd_extras() {
@@ -260,18 +291,27 @@ cmd_home() {
     step "Google-TV-Home zurückholen"
     for p in $STOCK_HOME; do enable_pkg "$p"; done
     dev am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
-    note "dumbtv home bleibt installiert (entfernen: adb uninstall $HOME_PKG)"
+    note "TCL Home bleibt installiert (entfernen: adb uninstall $HOME_PKG)"
     return
   fi
-  step "Schlichter Home-Screen (dumbtv home)"
-  note "Nur deine Apps, deine HDMI-Eingänge und eine Uhr. 54 KB, Open Source, kein Internet."
+  step "Schlichter Home-Screen (TCL Home)"
+  note "App-Raster über einem Hintergrundbild, oben Eingänge, WLAN und Einstellungen."
+  note "Keine Werbung, keine Vorschläge, kein Internet. TCL-Apps sind ausgeblendet."
   note "Dafür wird der Google-TV-Home-Screen deaktiviert (nicht gelöscht)."
-  ask "dumbtv home installieren und als Home-Screen setzen?" || return 0
-  fetch dumbtv-home.apk "$HOME_URL" "$HOME_SHA256"
+  ask "TCL Home installieren und als Home-Screen setzen?" || return 0
+  [[ -f $HOME_APK ]] || die "$HOME_APK fehlt. Neueste Version holen: git pull"
   note "installiere... Falls der TV fragt (Play Protect): 'Trotzdem installieren' drücken."
-  adb_ install -r "$APK" 2>&1 | grep -m1 -E 'Success|Failure|failed' | sed 's/^/   /'
+  local out
+  out=$(adb_ install -r "$HOME_APK" 2>&1 | grep -m1 -E 'Success|Failure|failed')
+  if [[ $out == *UPDATE_INCOMPATIBLE* ]]; then
+    # Ein dumbtv home von woanders ist mit anderem Schlüssel signiert.
+    note "ein anderes dumbtv home ist installiert, ersetze es"
+    adb_ uninstall $HOME_PKG >/dev/null
+    out=$(adb_ install -r "$HOME_APK" 2>&1 | grep -m1 -E 'Success|Failure|failed')
+  fi
+  note "$out"
   refresh
-  present $HOME_PKG || die "dumbtv home ist nicht installiert, Google TV bleibt Home-Screen"
+  present $HOME_PKG || die "TCL Home ist nicht installiert, Google TV bleibt Home-Screen"
   # Beide Pakete zusammen: setupwraith beantwortet HOME sonst selbst und kann abstürzen.
   for p in $STOCK_HOME; do disable_pkg "$p" --home; done
   # Bleibt noch ein TCL-Home übrig, zeigt Android sonst eine Auswahl.
@@ -286,7 +326,8 @@ cmd_home() {
     return 1
   fi
   note "Wichtig: TV jetzt ~1 Minute nicht ausschalten, damit Android den Zustand speichert."
-  note "Neue Apps: Play Store über dumbtv home > Optionen einblenden, oder kurz ./tcl.sh home aus."
+  note "Apps ein-/ausblenden, sortieren, Kachelgröße: oben rechts 'Optionen'."
+  note "Neue Apps: Play Store in Optionen > Apps on home screen anhaken."
 }
 
 cmd_youtube() {
@@ -310,9 +351,100 @@ cmd_youtube() {
   fi
 }
 
+cmd_hintergrund() {
+  [[ -f ${1:-} ]] || die "usage: ./tcl.sh hintergrund <bild.jpg|png>"
+  pick_device
+  local ext=${1##*.}
+  ext=$(printf '%s' "$ext" | tr 'A-Z' 'a-z')
+  [[ $ext == jpg || $ext == jpeg || $ext == png || $ext == webp ]] || die "nur jpg, png oder webp"
+  step "Hintergrundbild"
+  dev mkdir -p "$HOME_MEDIA"
+  dev rm -f "$HOME_MEDIA/wallpaper.jpg" "$HOME_MEDIA/wallpaper.jpeg" "$HOME_MEDIA/wallpaper.png" "$HOME_MEDIA/wallpaper.webp"
+  adb_ push "$1" "$HOME_MEDIA/wallpaper.$ext" | tail -1 | sed 's/^/   /'
+  note "erscheint, sobald du HOME drückst. Ohne eigenes Bild gibt es die eingebauten Berge."
+}
+
+# Ein Backup ist ein Ordner unter backup/: TV-Einstellungen, deaktivierte Pakete, App-Liste,
+# Home-Screen-Einstellungen und Hintergrundbilder. `wiederherstellen` spielt es zurück.
+cmd_backup() {
+  pick_device
+  local dir
+  dir=backup/$(date +%Y-%m-%d_%H%M)
+  mkdir -p "$dir"
+  step "Backup nach $dir/"
+  dev getprop >"$dir/geraet.txt"
+  for ns in global secure system; do dev settings list $ns >"$dir/settings-$ns.txt"; done
+  dev pm list packages -d | sed 's/^package://' >"$dir/deaktiviert.txt"
+  dev pm list packages -3 | sed 's/^package://' >"$dir/apps.txt"
+  cp "$STATE/deaktiviert.txt" "$dir/von-tcl-sh.txt" 2>/dev/null || true
+  [[ -f $STATE/vorher.txt ]] && cp "$STATE/vorher.txt" "$dir/vorher.txt"
+  # Android erlaubt adb das Lesen unter Android/media, nicht unter Android/data.
+  adb_ pull "$HOME_MEDIA" "$dir/home" >/dev/null 2>&1 || true
+  dev "cat /sdcard/Android/data/$HOME_PKG/files/home.conf" >"$dir/home.conf" 2>/dev/null
+  [[ -s $dir/home.conf ]] || rm -f "$dir/home.conf"
+  note "$(wc -l <"$dir/deaktiviert.txt" | tr -d ' ') deaktivierte Pakete, $(wc -l <"$dir/apps.txt" | tr -d ' ') installierte Apps"
+  [[ -f $dir/home.conf || -d $dir/home ]] && note "Home-Screen-Einstellungen gesichert"
+  note "fertig. Zurückspielen: ./tcl.sh wiederherstellen $dir"
+}
+
+latest_backup() { find backup -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -1; }
+
+cmd_wiederherstellen() {
+  local dir=${1:-$(latest_backup)}
+  [[ -n $dir && -d $dir ]] || die "kein Backup gefunden. Erst: ./tcl.sh backup"
+  pick_device; refresh; snapshot
+  step "Wiederherstellen aus $dir/"
+  ask "Patch und Backup auf den TV spielen?" || return 0
+  local saved=$YES p
+  YES=1
+  cmd_werbung; cmd_apps
+  # Was im Backup aus war und in einer der Listen steht, wieder ausschalten.
+  if [[ -f $dir/von-tcl-sh.txt ]]; then
+    refresh
+    while read -r p; do
+      [[ -z $p ]] && continue
+      [[ " $STOCK_HOME " == *" $p "* ]] && continue
+      disable_pkg "$p"
+    done <"$dir/von-tcl-sh.txt"
+  fi
+  if grep -q '^private_dns_mode=hostname' "$dir/settings-global.txt" 2>/dev/null; then
+    DNS_HOST=$(sed -n 's/^private_dns_specifier=//p' "$dir/settings-global.txt" | head -1)
+    cmd_dns
+  fi
+  if grep -qx "$ST_PKG" "$dir/apps.txt" 2>/dev/null; then cmd_youtube; fi
+  if grep -qx "com.google.android.apps.tv.launcherx" "$dir/deaktiviert.txt" 2>/dev/null \
+      || grep -qx "$HOME_PKG" "$dir/apps.txt" 2>/dev/null; then
+    cmd_home
+    dev mkdir -p "$HOME_MEDIA"
+    if [[ -d $dir/home ]]; then
+      adb_ push "$dir/home/." "$HOME_MEDIA/" >/dev/null && note "Hintergrund zurückgespielt"
+    fi
+    if [[ -f $dir/home.conf ]]; then
+      adb_ push "$dir/home.conf" "$HOME_MEDIA/home.conf" >/dev/null && note "Home-Screen-Einstellungen zurückgespielt"
+    fi
+  fi
+  YES=$saved
+  step "Apps aus dem Backup, die jetzt fehlen (aus dem Play Store neu laden)"
+  refresh
+  while read -r p; do present "$p" || note "$p"; done <"$dir/apps.txt"
+}
+
+cmd_neu() {
+  pick_device
+  step "Alles neu: Backup, zurücksetzen, frisch patchen, Backup zurückspielen"
+  ask "Wirklich alles neu aufspielen?" || return 0
+  cmd_backup
+  local dir
+  dir=$(latest_backup)
+  YES=1 cmd_rueckgaengig_keep
+  cmd_wiederherstellen "$dir"
+}
+
 cmd_patch() {
   pick_device; device_info
+  cmd_backup
   cmd_werbung
+  cmd_apps
   cmd_extras
   cmd_dns
   cmd_youtube
@@ -327,15 +459,27 @@ cmd_rueckgaengig() {
   [[ -f $STATE/vorher.txt ]] || die "kein gespeicherter Ausgangszustand für $SERIAL in $STATE/"
   step "Alles zurück"
   ask "Alle von tcl.sh deaktivierten Pakete wieder aktivieren und Einstellungen zurücksetzen?" || return 0
+  reset_all
+  if present $HOME_PKG && ask "TCL Home deinstallieren?"; then adb_ uninstall $HOME_PKG | sed 's/^/   /'; fi
+  if present $ST_PKG && ask "SmartTube deinstallieren?"; then adb_ uninstall $ST_PKG | sed 's/^/   /'; fi
+  note "Fertig. Der TV ist wieder wie vorher."
+}
+
+# Für `neu`: zurücksetzen, aber installierte Apps behalten.
+cmd_rueckgaengig_keep() {
+  pick_device; refresh
+  [[ -f $STATE/vorher.txt ]] || return 0
+  step "Zurücksetzen"
+  reset_all
+}
+
+reset_all() {
   local p ss
   while read -r p; do [[ -n $p ]] && enable_pkg "$p"; done < <(cat "$STATE/deaktiviert.txt")
   cmd_dns aus
   ss=$(before screensaver_components)
   if [[ -n $ss && $ss != null ]]; then dev settings put secure screensaver_components "$ss"; fi
   dev am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null
-  if present $HOME_PKG && ask "dumbtv home deinstallieren?"; then adb_ uninstall $HOME_PKG | sed 's/^/   /'; fi
-  if present $ST_PKG && ask "SmartTube deinstallieren?"; then adb_ uninstall $ST_PKG | sed 's/^/   /'; fi
-  note "Fertig. Der TV ist wieder wie vorher."
 }
 
 # ---------------------------------------------------------------- Start
@@ -344,7 +488,7 @@ args=()
 for a in "$@"; do
   case $a in
     -y|--yes) YES=1 ;;
-    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) args+=("$a") ;;
   esac
 done
@@ -353,6 +497,7 @@ set -- "${args[@]+"${args[@]}"}"
 cmd=${1:-}
 shift || true
 case $cmd in
-  verbinden|check|patch|werbung|extras|dns|home|youtube|rueckgaengig) "cmd_$cmd" "$@" ;;
-  *) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|youtube|backup|wiederherstellen|neu|rueckgaengig)
+    "cmd_$cmd" "$@" ;;
+  *) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac
