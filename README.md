@@ -121,6 +121,14 @@ Android den WLAN-Namen verrät), Einstellungen schreiben (Bildschirmschoner-Zeit
 den Bedienungshilfe-Dienst „TCL Home Tasten“ (Fernbedienung und Ausschalten). Die App
 hat weiterhin keinen Internetzugriff.
 
+## Apps aktualisieren
+
+Der Play Store aktualisiert deine Apps weiter automatisch im Hintergrund, das Skript
+blockiert das nicht. Von Hand: *Optionen › Apps aktualisieren (Play Store)* öffnet die
+Update-Liste. Automatische Updates stellst du im Play Store unter Profil ›
+Einstellungen ein. SmartTube aktualisiert sich selbst, TCL Home mit `git pull` und
+`tcl home`.
+
 ## Tasten der Fernbedienung
 
 Die App-Tasten hat der Google-TV-Home-Screen gesteuert, deshalb taten sie nach dem
@@ -140,10 +148,10 @@ Tastencodes deiner Fernbedienung.
 | YouTube | SmartTube (oder YouTube, wenn SmartTube fehlt) |
 | TCL Channel | IPTV Smarters Pro |
 | Einstellungen (Zahnrad) | TV-Einstellungen |
-| Favoriten (Lesezeichen) | fragt nach, Standard: Liste der Eingänge |
+| Favoriten (Lesezeichen) | schiebt die ausgewählte App nach vorne (oben links) |
 
 Eine Taste umbelegen: `tcl taste <nummer> <ziel>`. Die Nummer zeigt `tcl tasten` an.
-Das Ziel ist ein App-Paketname oder `settings`, `wifi`, `inputs`, `saver`
+Das Ziel ist ein App-Paketname oder `favorit`, `settings`, `wifi`, `inputs`, `saver`
 (Sperrbildschirm), `off` (Ausschalten) oder `home`. `tcl taste <nummer> aus` gibt die
 Taste wieder frei.
 

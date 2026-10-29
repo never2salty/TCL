@@ -74,6 +74,8 @@ public final class Home extends Activity {
     /** What a remote button asked this screen to open (see {@link Keys}), done on resume. */
     private String pendingOpen;
     static final String EXTRA_OPEN = "open";
+    /** The home screen while it is in front, for the remote's Favoriten button. */
+    static Home current;
     private Meter meter;
     private Row apps, inputs;
     private Map<String, Long> recent = new HashMap<>();
@@ -229,6 +231,7 @@ public final class Home extends Activity {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        current = this;
         Guard.arrived(this);
         cfg.refresh();
         cfg.visited();
@@ -255,6 +258,7 @@ public final class Home extends Activity {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        if (current == this) current = null;
         stopColorAnimation();
         targetColor = 0;
         unregisterReceiver(time);
@@ -1139,6 +1143,33 @@ public final class Home extends Activity {
         strip.removeViewAt(from);
         strip.addView(moving, to, lp);
         moving.requestFocus();
+    }
+
+    /**
+     * The Favoriten button: the focused app moves to the front of the apps, so the latest
+     * favourite is always top left and the earlier ones shift one place on.
+     */
+    void favoriteFocused() {
+        View f = getCurrentFocus();
+        if (!(f instanceof Tile) || !Catalog.APPS.equals(((Tile) f).kind)) {
+            Toast.makeText(this, "Erst eine App auswählen, dann Favoriten drücken", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Tile t = (Tile) f;
+        if (moving != null) stopMoving();
+        ViewGroup strip = (ViewGroup) t.getParent();
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; i < strip.getChildCount(); i++) ids.add(((Tile) strip.getChildAt(i)).item.id);
+        ids.remove(t.item.id);
+        ids.add(0, t.item.id);
+        // Recently used would sort it away again at once.
+        if ("recent".equals(cfg.get(Config.ORDER))) cfg.set(Config.ORDER.key, "custom");
+        Catalog.saveOrder(cfg, Catalog.APPS, ids);
+        apply();
+        View first = apps.tiles().getChildAt(0);
+        if (first != null) first.requestFocus();
+        apps.scroll.scrollTo(0, 0);
+        Toast.makeText(this, Catalog.label(cfg, t.item) + " ist jetzt vorne", Toast.LENGTH_SHORT).show();
     }
 
     private void stopMoving() {

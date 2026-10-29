@@ -339,14 +339,14 @@ home_rights() {
 }
 
 # Die Tasten deiner Fernbedienung: Name|Ziel. Ziel = App-Pakete (erstes installiertes gewinnt)
-# oder settings, wifi, inputs, saver, off, home.
+# oder settings, wifi, inputs, saver, off, home, favorite (gewählte App nach vorne).
 KEYS_DEFAULT=(
   "Netflix|com.netflix.ninja"
   "Prime Video (öffnet Apple TV)|com.apple.atve.androidtv.appletv"
   "YouTube|$ST_PKG,$YT_PKG"
   "TCL Channel (öffnet IPTV Smarters Pro)|com.nst.iptvsmarterstvbox"
   "Einstellungen (Zahnrad oben rechts)|settings"
-  "Favoriten (Lesezeichen oben links)|inputs"
+  "Favoriten (Lesezeichen oben links)|favorite"
 )
 
 cmd_tasten() {
@@ -359,10 +359,6 @@ cmd_tasten() {
   local entry name target code a
   for entry in "${KEYS_DEFAULT[@]}"; do
     name=${entry%%|*}; target=${entry#*|}
-    if [[ $name == Favoriten* && $YES == 0 ]]; then
-      read -r -p "   Was soll die Favoriten-Taste öffnen? [Enter = Eingänge-Liste, oder App-Paketname] " a <&3 || true
-      [[ -n $a ]] && target=$a
-    fi
     dev logcat -c
     read -r -p "   Taste '$name' drücken, dann Enter... " a <&3 || true
     sleep 1
@@ -379,7 +375,7 @@ cmd_tasten() {
 }
 
 cmd_taste() {
-  [[ -n ${1:-} && -n ${2:-} ]] || die "usage: tcl taste <nummer> <ziel|aus>  (ziel: App-Paket, settings, wifi, inputs, saver, off, home)"
+  [[ -n ${1:-} && -n ${2:-} ]] || die "usage: tcl taste <nummer> <ziel|aus>  (ziel: App-Paket, favorit, settings, wifi, inputs, saver, off, home)"
   pick_device
   if [[ $2 == aus ]]; then set_home_conf "key.$1" ""; note "Taste $1 macht wieder, was der TV will"
   else set_home_conf "key.$1" "$2"; note "Taste $1 -> $2"; fi

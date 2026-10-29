@@ -60,6 +60,7 @@ public final class Options extends Activity {
         list.addView(action("Apps on home screen", () -> pick(Catalog.APPS)));
         list.addView(action("Inputs on home screen", () -> pick(Catalog.INPUTS)));
         list.addView(action("Reset order, names and hidden tiles", this::reset));
+        list.addView(action("Apps aktualisieren (Play Store)", this::updateApps));
         list.addView(action("Sperrbildschirm jetzt zeigen", () -> startActivity(new Intent(this, Saver.class))));
 
         TextView about = Ui.text(this, 13, Ui.FAINT, Ui.MEDIUM);
@@ -229,6 +230,24 @@ public final class Options extends Activity {
         } catch (SecurityException e) {
             Toast.makeText(this, "Darf die TV-Einstellung nicht ändern. Einmal tcl home ausführen.",
                     Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** The Play Store's own list of app updates, or the Play Store itself on builds without it. */
+    private void updateApps() {
+        Intent updates = new Intent("com.google.android.finsky.VIEW_MY_DOWNLOADS")
+                .setPackage("com.android.vending");
+        Intent store = getPackageManager().getLeanbackLaunchIntentForPackage("com.android.vending");
+        if (store == null) store = getPackageManager().getLaunchIntentForPackage("com.android.vending");
+        Intent go = updates.resolveActivity(getPackageManager()) != null ? updates : store;
+        if (go == null) {
+            Toast.makeText(this, "Play Store nicht gefunden", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            startActivity(go.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (android.content.ActivityNotFoundException | SecurityException e) {
+            if (store != null) startActivity(store.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
     }
 
