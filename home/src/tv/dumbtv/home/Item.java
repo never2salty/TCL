@@ -11,6 +11,8 @@ final class Item {
     final Intent intent;
     ActivityInfo info;
     boolean leanback;
+    /** Installed by the user (Play Store, sideload), not shipped with the TV. */
+    boolean userApp;
     int state = -1;
     volatile boolean artRequested;
     volatile Drawable banner, icon;

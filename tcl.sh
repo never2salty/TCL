@@ -15,7 +15,8 @@
 #   ./tcl.sh hintergruende [n|ordner|aus]  wechselnde Hintergründe: n Google-Backdrops
 #                                (Standard 30) oder alle Bilder aus einem Ordner
 #   ./tcl.sh youtube             SmartTube installieren (YouTube ohne Werbung)
-#   ./tcl.sh tasten              Tasten der Fernbedienung belegen (Netflix, YouTube, ...)
+#   ./tcl.sh update              neue TCL-Home-Version auf den TV (nach git pull)
+#   ./tcl.sh tasten [aus]        Tasten der Fernbedienung belegen (Netflix, YouTube, ...)
 #   ./tcl.sh taste <nr> <ziel>   eine Taste umbelegen
 #   ./tcl.sh backup              Backup von Einstellungen, Home-Screen und App-Liste
 #   ./tcl.sh wiederherstellen    Patch + Backup neu aufspielen (z. B. nach Werksreset)
@@ -361,9 +362,26 @@ update_home() {
   home_rights >/dev/null
 }
 
+cmd_update() {
+  pick_device; refresh
+  present $HOME_PKG || die "TCL Home ist nicht installiert: tcl home"
+  step "TCL Home aktualisieren"
+  local before_v
+  before_v=$(dev dumpsys package $HOME_PKG | sed -n 's/.*versionName=\([^ ]*\).*/\1/p' | head -1)
+  update_home
+  note "auf dem TV: $(dev dumpsys package $HOME_PKG | sed -n 's/.*versionName=\([^ ]*\).*/\1/p' | head -1) (vorher $before_v)"
+  note "Tastenbelegung und Einstellungen bleiben. Einmal HOME drücken."
+}
+
 cmd_tasten() {
   pick_device; refresh
   present $HOME_PKG || die "erst TCL Home installieren: tcl home"
+  if [[ ${1:-} == aus ]]; then
+    step "Tasten-Dienst aus"
+    set_guard 0
+    note "Die App-Tasten tun wieder, was der TV will. Wieder an: tcl tasten"
+    return
+  fi
   update_home
   step "Tasten der Fernbedienung einrichten"
   note "Für jede Taste: am TV die Taste einmal drücken, dann hier Enter."
@@ -672,7 +690,7 @@ args=()
 for a in "$@"; do
   case $a in
     -y|--yes) YES=1 ;;
-    -h|--help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) args+=("$a") ;;
   esac
 done
@@ -681,7 +699,7 @@ set -- "${args[@]+"${args[@]}"}"
 cmd=${1:-}
 shift || true
 case $cmd in
-  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|hintergruende|youtube|tasten|taste|backup|wiederherstellen|neu|rueckgaengig)
+  verbinden|check|patch|werbung|apps|extras|dns|home|hintergrund|hintergruende|youtube|tasten|taste|update|backup|wiederherstellen|neu|rueckgaengig)
     "cmd_$cmd" "$@" ;;
-  *) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  *) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

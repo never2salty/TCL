@@ -116,6 +116,7 @@ public final class Guard extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         running = this;
+        Keys.reload(this);
         View view = new View(this);
         view.setVisibility(View.GONE);
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(

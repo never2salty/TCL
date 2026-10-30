@@ -216,7 +216,7 @@ final class Config {
         values.putAll(parse(file));
     }
 
-    private static Map<String, String> parse(File f) {
+    static Map<String, String> parse(File f) {
         Map<String, String> out = new LinkedHashMap<>();
         try (BufferedReader r = new BufferedReader(
                 new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8))) {

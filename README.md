@@ -97,7 +97,8 @@ TCL-Systemdienste. Eine App, die du doch willst, kommentierst du in der Liste mi
 - Apps als Raster mit großen Kacheln über einem Hintergrundbild
 - oben rechts **Eingänge** (Liste deiner HDMI-Eingänge), **WLAN**, **Einstellungen**
   und **Optionen**
-- TCL-eigene Apps sind ausgeblendet. Unter *Optionen › Apps on home screen*
+- Apps, die du selbst installierst, erscheinen sofort, auch Handy-Apps ohne TV-Banner
+  (z. B. ein Browser). TCL-eigene Apps sind ausgeblendet. Unter *Optionen › Apps on home screen*
   blendest du jede App ein oder aus, auch den Play Store.
 - Halte OK auf einer Kachel zum Verschieben, Umbenennen oder Ausblenden.
 - Kein Internetzugriff, keine Werbung, keine Vorschläge.
@@ -125,7 +126,7 @@ Der Play Store aktualisiert deine Apps weiter automatisch im Hintergrund, das Sk
 blockiert das nicht. Von Hand: *Optionen › Apps aktualisieren (Play Store)* öffnet die
 Update-Liste. Automatische Updates stellst du im Play Store unter Profil ›
 Einstellungen ein. SmartTube aktualisiert sich selbst, TCL Home mit `git pull` und
-`tcl home`.
+`tcl update`.
 
 ## Tasten der Fernbedienung
 
@@ -147,6 +148,9 @@ Tastencodes deiner Fernbedienung.
 | TCL Channel | IPTV Smarters Pro |
 | Einstellungen (Zahnrad) | TV-Einstellungen |
 | Favoriten (Lesezeichen) | schiebt die ausgewählte App nach vorne (oben links) |
+
+Merkst du, dass Lautstärke oder Steuerkreuz hängen, schaltet `tcl tasten aus` den
+Tasten-Dienst ab. Dann tun die App-Tasten nichts mehr, alles andere ist wie ab Werk.
 
 Eine Taste umbelegen: `tcl taste <nummer> <ziel>`. Die Nummer zeigt `tcl tasten` an.
 Das Ziel ist ein App-Paketname oder `favorit`, `settings`, `wifi`, `inputs`, `saver`

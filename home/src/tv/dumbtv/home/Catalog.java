@@ -3,6 +3,7 @@ package tv.dumbtv.home;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.media.tv.TvContract;
@@ -46,6 +47,7 @@ final class Catalog {
             Item it = new Item(ai.packageName, ri.loadLabel(pm), launch);
             it.info = ai;
             it.leanback = leanback;
+            it.userApp = (ai.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0;
             found.put(ai.packageName, it);
         }
     }
@@ -92,15 +94,16 @@ final class Catalog {
         if (!APPS.equals(kind)) return true;
         if (cfg.list("apps.show").contains(it.id)) return true;
         // TCL's own apps (TV+, Channel, manuals, ...) stay off the home screen unless ticked.
-        return it.leanback && !it.id.startsWith("com.tcl.");
+        // Apps without a TV banner (a phone browser, say) show too when the user installed them.
+        return (it.leanback || it.userApp) && !it.id.startsWith("com.tcl.");
     }
 
     static void setShown(Config cfg, String kind, Item it, boolean on) {
         List<String> hide = cfg.list(kind + ".hide");
         hide.remove(it.id);
-        if (!on && (it.leanback || !APPS.equals(kind))) hide.add(it.id);
+        if (!on && (it.leanback || it.userApp || !APPS.equals(kind))) hide.add(it.id);
         cfg.setList(kind + ".hide", hide);
-        if (APPS.equals(kind) && !it.leanback) {
+        if (APPS.equals(kind) && !it.leanback && !it.userApp) {
             List<String> show = cfg.list("apps.show");
             show.remove(it.id);
             if (on) show.add(it.id);
