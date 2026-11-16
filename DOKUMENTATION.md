@@ -182,6 +182,9 @@ einmal neu starten. Was nach dem Neustart kaputt ist, mit `tcl rueckgaengig` ode
 
 ### 7.2 Samsung (Tizen)
 
+**Nachtrag:** Eine eigene Start-App geht doch. Siehe „CleanHome“ am Ende dieses
+Abschnitts. Tizen selbst lässt sich aber nicht ersetzen.
+
 Samsung lässt **kein ADB** zu. Der Entwicklermodus (Apps-Bereich, Ziffern `12345`) erlaubt
 nur das Werkzeug `sdb`. Damit kann man Apps installieren und Store-Apps entfernen, aber
 **keine Systemeinstellungen ändern, keine Samsung-Dienste abschalten und keinen
@@ -222,6 +225,30 @@ Für Hotels gibt es noch den **Hotel- bzw. Hospitality-Modus** (bei vielen Model
 mit der Infrarot-Fernbedienung *Mute, 1, 1, 9, Enter*). Damit lassen sich Start-Eingang
 und Menüs festlegen. Vorsicht: Falsche Einstellungen dort sperren Menüs. Nur nutzen, wenn
 du weißt, was du tust.
+
+**CleanHome: eigene Start-App auf dem Samsung** ([samsung/](samsung/))
+
+Eine Tizen-Web-App, die wie ein Startbildschirm arbeitet: Uhr, Datum, Favoriten (Netflix,
+Prime Video, YouTube, App Store) und darunter alle installierten Apps, bedienbar mit
+Pfeiltasten und OK. Sie ersetzt Tizen nicht. Die Home-Taste öffnet weiter Samsungs Leiste,
+und Systemdienste lassen sich nicht abschalten.
+
+Einrichten (einmalig):
+1. Tizen Studio installieren, im Certificate Manager ein **Samsung**-Zertifikat erstellen
+   (Author und Distributor), dabei die DUID des TVs eintragen.
+2. TV: Apps › `12345` › Entwicklermodus an, IP des PCs eintragen, TV neu starten.
+3. Device Manager: TV verbinden, Rechtsklick › **Permit to install applications**.
+4. `powershell -ExecutionPolicy Bypass -File samsung\install.ps1`
+
+Automatisch beim Einschalten: *Einstellungen › Allgemein › Smart-Funktionen › Letzte App
+automatisch ausführen* an. Dann startet der TV mit der zuletzt benutzten App.
+
+Stolpersteine beim Installieren (Fehler `install failed[118012]`):
+- Ein altes `.wgt` lag im Paket-Ordner und wurde mit eingepackt. `install.ps1` baut
+  deshalb immer in einem frischen Ordner.
+- „Permit to install applications“ fehlte. Erst danach akzeptierte der TV das Zertifikat.
+- Die Signatur von Tizen Studio (SHA-512) funktioniert auch auf Tizen 4.0. Ein eigenes
+  SHA-256-Skript war nicht nötig und hat das Paket ungültig gemacht.
 
 ### 7.3 LG (webOS)
 
