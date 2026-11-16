@@ -226,7 +226,7 @@ mit der Infrarot-Fernbedienung *Mute, 1, 1, 9, Enter*). Damit lassen sich Start-
 und Menüs festlegen. Vorsicht: Falsche Einstellungen dort sperren Menüs. Nur nutzen, wenn
 du weißt, was du tust.
 
-**CleanHome: eigene Start-App auf dem Samsung** ([samsung/](samsung/))
+**CleanHome: eigene Start-App auf dem Samsung** (eigenes Repo: [never2salty/samsung](https://github.com/never2salty/samsung))
 
 Eine Tizen-Web-App, die wie ein Startbildschirm arbeitet: Uhr, Datum, Favoriten (Netflix,
 Prime Video, YouTube, App Store) und darunter alle installierten Apps, bedienbar mit
@@ -238,7 +238,7 @@ Einrichten (einmalig):
    (Author und Distributor), dabei die DUID des TVs eintragen.
 2. TV: Apps › `12345` › Entwicklermodus an, IP des PCs eintragen, TV neu starten.
 3. Device Manager: TV verbinden, Rechtsklick › **Permit to install applications**.
-4. `powershell -ExecutionPolicy Bypass -File samsung\install.ps1`
+4. Im Samsung-Repo: `powershell -ExecutionPolicy Bypass -File install.ps1`
 
 Automatisch beim Einschalten: *Einstellungen › Allgemein › Smart-Funktionen › Letzte App
 automatisch ausführen* an. Dann startet der TV mit der zuletzt benutzten App.
